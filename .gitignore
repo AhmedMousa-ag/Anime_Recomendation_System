@@ -1,1 +1,3 @@
 Data/
+.pytest_cache/
+.vscode/
