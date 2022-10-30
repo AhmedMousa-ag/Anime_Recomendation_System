@@ -77,4 +77,4 @@ class content_base():
 
     def change_user(self, user_id):
         self.curr_user = user_id
-
+        self.user_rating = None
