@@ -34,13 +34,15 @@ class content_base():
         anime_feats = tf.squeeze(tf.gather(anime_feats, [2], axis=1))
         return anime_feats #tf.transpose(anime_feats)
 
-    def gen_user_vector(self):
+    def gen_user_vector(self): # We could cache the calcuations but I don't trust my ram to keep all these informations
         user_anime = self.gen_user_anime()
         anime_feats = self.gen_anime_feats
         user_vector = tf.matmul(anime_feats, user_anime)
         return user_vector / tf.reduce_sum(user_vector, axis=1, keepdims=True)
-    #TODO a function to generate movies rating
 
+    def gen_user_rating(self):
+        return tf.matmul(self.gen_user_vector(),tf.transpose(self.gen_anime_feats()))
+        
     #TODO a function to get the top predicted rating
 
     def convert_tf_tensor(self, data):
