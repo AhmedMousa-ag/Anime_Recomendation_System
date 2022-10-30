@@ -2,10 +2,11 @@ import tensorflow as tf
 
 
 class content_base():
-    def __init__(self, user_behavior, anime_features, user_id):
+    def __init__(self, user_behavior, anime_features, user_id, num_recom=None):
         self.user_behavior = self.convert_tf_tensor(user_behavior)
         self.anime_features = self.convert_tf_tensor(anime_features)
         self.curr_user = user_id
+        self.num_recom = num_recom
         self.anime_ids = None
         self.user_rating = None
 
@@ -33,9 +34,10 @@ class content_base():
             tf.gather(self.anime_features, anime_row_index, axis=0))
         # Genre is column indx 2
         anime_feats = tf.squeeze(tf.gather(anime_feats, [2], axis=1))
-        return anime_feats #tf.transpose(anime_feats)
+        return anime_feats  # tf.transpose(anime_feats)
 
-    def gen_user_vector(self): # We could cache the calcuations but I don't trust my ram to keep all these informations
+    # We could cache the calcuations but I don't trust my ram to keep all these informations
+    def gen_user_vector(self):
         user_anime = self.gen_user_anime()
         anime_feats = self.gen_anime_feats
         user_vector = tf.matmul(anime_feats, user_anime)
@@ -43,10 +45,29 @@ class content_base():
 
     def gen_user_rating(self):
         if not self.user_rating:
-            self.user_rating = tf.matmul(self.gen_user_vector(),tf.transpose(self.gen_anime_feats()))
-        return self.user_rating # I would love to cache the most important info
+            self.user_rating = tf.matmul(
+                self.gen_user_vector(), tf.transpose(self.gen_anime_feats()))
+        return self.user_rating  # I would love to cache the most important info
 
-    #TODO a function to get the top predicted rating
+    def gen_user_unseen_rating(self):
+        user_anime = self.gen_user_anime()
+        users_unseen_anime = tf.equal(user_anime, tf.zeros_like(user_anime))
+        ignore_matrix = tf.zeros_like(tf.cast(user_anime, tf.float32))
+        self.users_unseen_rating = tf.where(
+            users_unseen_anime,
+            self.user_rating, ignore_matrix)
+        return self.users_unseen_rating
+
+    def get_top_rating(self, num_recommendations=None):
+        if not num_recommendations:
+            num_recom = self.num_recom
+        else:
+            num_recom = num_recommendations
+
+        if not self.users_unseen_rating:
+            self.gen_user_unseen_rating()
+
+        return tf.nn.top_k(self.users_unseen_rating, num_recom)[1]
 
     def convert_tf_tensor(self, data):
         if not tf.is_tensor(data):
@@ -57,10 +78,3 @@ class content_base():
     def change_user(self, user_id):
         self.curr_user = user_id
 
-
-user = [[1, 3, 5, 6, 4, 7], [2, 3, 5, 6, 7, 8],
-        [1, 1, 3, 6, 7, 8], [1, 6, 10, 6, 7, 8]]
-movie = [[3, 6, 0, 7, 8], [10, 6, 3, 7, 8], [1, 6, 3, 7, 8], [6, 6, 7, 7, 8]]
-#[[3, 6, [0,1], 7, 8], [10, 6, [2,3], 7, 8], [1, 6, [3,6], 7, 8], [6, 6, [7,4], 7, 8]]
-con = content_base(user, movie, 1)
-print(f"Our value: {con.gen_anime_feats()}")
