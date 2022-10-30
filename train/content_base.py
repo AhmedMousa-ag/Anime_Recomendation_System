@@ -37,7 +37,8 @@ class content_base():
     def gen_user_vector(self):
         user_anime = self.gen_user_anime()
         anime_feats = self.gen_anime_feats
-        return tf.matmul(anime_feats, user_anime)
+        user_vector = tf.matmul(anime_feats, user_anime)
+        return user_vector / tf.reduce_sum(user_vector, axis=1, keepdims=True)
     #TODO a function to generate movies rating
 
     #TODO a function to get the top predicted rating
