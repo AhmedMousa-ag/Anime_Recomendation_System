@@ -7,6 +7,7 @@ class content_base():
         self.anime_features = self.convert_tf_tensor(anime_features)
         self.curr_user = user_id
         self.anime_ids = None
+        self.user_rating = None
 
     def gen_user_anime(self):
         """returns a matrix for each row represent the rating of the movie id to that specific user"""
@@ -41,8 +42,10 @@ class content_base():
         return user_vector / tf.reduce_sum(user_vector, axis=1, keepdims=True)
 
     def gen_user_rating(self):
-        return tf.matmul(self.gen_user_vector(),tf.transpose(self.gen_anime_feats()))
-        
+        if not self.user_rating:
+            self.user_rating = tf.matmul(self.gen_user_vector(),tf.transpose(self.gen_anime_feats()))
+        return self.user_rating # I would love to cache the most important info
+
     #TODO a function to get the top predicted rating
 
     def convert_tf_tensor(self, data):
