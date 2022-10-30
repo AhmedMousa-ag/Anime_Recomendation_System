@@ -5,20 +5,14 @@ class content_base():
         self.anime_features = self.convert_tf_tensor(anime_features)
         self.curr_user = user_id
 
-#TODO a function to get user rating to each movie "users movies"
-    def gen_user_movie(self):
-        # returns a matrix for each row represent the rating of the movie id
-        # all can be find in animelist file
-        #user_id,anime_id,rating,watching_status,watched_episodes
-        #0,67,9,1,1
-        #0,6702,7,1,4
+    def gen_user_anime(self):
+        """returns a matrix for each row represent the rating of the movie id to that specific user"""
         user_rows_indx = tf.squeeze(tf.where(tf.equal(self.user_behavior[:,0],self.curr_user))) #user_id is the zero index of our data
         user_matrix = tf.gather(self.user_behavior,user_rows_indx,axis=0)
-        # now you need to take all anime id and align them, then put ratings underneath each of them
         anime_id_rating = tf.gather(user_matrix,[1,2],axis=1)
-
         return tf.transpose(anime_id_rating)
     #TODO a function to get movies feats according to genre
+
 
     #TODO a fucntion to generate user vector
 
