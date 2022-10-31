@@ -79,7 +79,11 @@ class content_base():
 
         if not self.users_unseen_rating:
             self.gen_user_unseen_rating()
-        return tf.nn.top_k(self.users_unseen_rating, num_recom)[1]
+        
+        top_k = tf.nn.top_k(self.users_unseen_rating, num_recom)
+        top_values = top_k.values.numpy()
+        top_indices = top_k.indices.numpy()
+        return top_values,top_indices
 
     def convert_tf_tensor(self, data, dtype=None):
         if not tf.is_tensor(data):
