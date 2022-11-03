@@ -10,6 +10,7 @@ FIRST_PREPROCESS = config_preprocess.FIRST_PREPROCESS
 PREPROCESS_MAP = config_preprocess.PREPROCESS_MAP
 WRITE_TF_RECORD_PATH = config_preprocess.WRITE_TF_RECORD_PATH
 
+
 def label_encoder(data, name, first_preprocess=FIRST_PREPROCESS):
     """
     args:
@@ -161,13 +162,11 @@ class preprocessor_anime_data():
 
 
 class preprocess_colabritive():
-    def __init__(self, user_data_path: str, load_rows=None, write_path=WRITE_TF_RECORD_PATH,
-                usecols=["user_id", "anime_id", "rating"]):
+    def __init__(self, user_data_path: str, load_rows=None, write_path=WRITE_TF_RECORD_PATH):
         """This class prepare data for WALS training once called"""
         self.data_path = user_data_path
         self.load_rows = load_rows
         self.write_path = write_path
-        self.usecols = usecols
         self.write_tf_file()
 
     def __create_mapping(self, values):
@@ -176,19 +175,21 @@ class preprocess_colabritive():
 
     def __get_mapped(self):
         df = pd.read_csv(filepath_or_buffer=self.data_path,
-                         usecols=self.usecols, nrows=self.load_rows)
+                         usecols=["user_id", "anime_id", "rating",
+                                  "watching_status", "watched_episodes"],
+                         nrows=self.load_rows)
         user_mapping = self.__create_mapping(df["user_id"])
         item_mapping = self.__create_mapping(df["anime_id"])
         df["userId"] = df["user_id"].map(user_mapping.get)
         df["itemId"] = df["anime_id"].map(item_mapping.get)
-        mapped_df = df[self.usecols]
+        mapped_df = df[["userId", "itemId", "rating",
+                        "watching_status", "watched_episodes"]]
         return mapped_df
 
-    def __write_tf_grouped_by(self,write_name ,group_by: str = "itemId"):
+    def __write_tf_grouped_by(self, write_name, group_by: str = "itemId"):
         mapped_df = self.__get_mapped()
         grouped_by_items = mapped_df.groupby(group_by)
-        print(f"grouped: {grouped_by_items.head()}")
-        write_path = os.path.join(self.write_path,write_name)
+        write_path = os.path.join(self.write_path, write_name)
         with tf.io.TFRecordWriter(write_path) as ofp:
             for item, grouped in grouped_by_items:
                 example = tf.train.Example(features=tf.train.Features(feature={
@@ -202,5 +203,15 @@ class preprocess_colabritive():
         if not os.path.exists(self.write_path):
             os.makedirs(self.write_path)
 
-        self.__write_tf_grouped_by("users_for_item",group_by= "itemId")
-        self.__write_tf_grouped_by("items_for_user",group_by= "userId")
+        self.__write_tf_grouped_by("users_for_item", group_by="itemId")
+        self.__write_tf_grouped_by("items_for_user", group_by="userId")
+
+    def get_users_for_item(self):
+        mapped_df = self.__get_mapped()
+        grouped_by_items = mapped_df.groupby("itemId")
+        return grouped_by_items
+
+    def get_items_for_users(self):
+        mapped_df = self.__get_mapped()
+        grouped_by_items = mapped_df.groupby("userId")
+        return grouped_by_items
