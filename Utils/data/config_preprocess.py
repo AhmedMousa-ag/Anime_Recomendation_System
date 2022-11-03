@@ -1,3 +1,4 @@
+import os
 FIRST_PREPROCESS = True
 
 # Will one hot encocde Genres after splitting it and Type as well,
@@ -16,5 +17,6 @@ PREPROCESS_MAP = {"anime":
                                         "Rating": "onehot_encoder"}}
                                            }
 
+WRITE_TF_RECORD_PATH = os.path.join("Data","Prep_data")
 
 
