@@ -5,6 +5,7 @@ from Utils.data import config_preprocess
 import pandas as pd
 import tensorflow as tf
 import os
+from scipy.sparse import csr_matrix
 
 FIRST_PREPROCESS = config_preprocess.FIRST_PREPROCESS
 PREPROCESS_MAP = config_preprocess.PREPROCESS_MAP
@@ -208,10 +209,28 @@ class preprocess_colabritive():
 
     def get_users_for_item(self):
         mapped_df = self.__get_mapped()
-        grouped_by_items = mapped_df.groupby("itemId")
+        grouped_by_items = mapped_df.groupby("itemId", as_index=False)
         return grouped_by_items
 
     def get_items_for_users(self):
         mapped_df = self.__get_mapped()
-        grouped_by_items = mapped_df.groupby("userId")
+        grouped_by_items = mapped_df.groupby("userId", as_index=False)
         return grouped_by_items
+
+    def get_x_y_data_NNCF(self, data_user, data_item):
+        """It's never clear what's Y label in NNColabritive Filtering,
+        But it's either the user liked it or not (1 or 0).
+        But it doesn't tell us how much did the user like it which isn't enough for me,
+        I will change it to predict the rating.
+        If you would like to follow the paper please replace y line with the following
+        y = np.array([ 0 if int(rating[-1]) < 5 else 1 for rating in data["rating"]]) # below 5 didn't like it
+        """
+        y = np.array([int(rating[-1]) for rating in data_user["rating"]])
+        x_user = np.array([np.array(col) for row, col in
+                           data_user["userId", "itemId", "watching_status", "watched_episodes"]]).squeeze()
+        # We can take the following features from item feature MAL_ID , Genres , Type , Duration , Source
+        x_item = data_item[["MAL_ID", "Genres", "Type", "Duration", "Source"]]
+        # must combine the anime_id with user rating for that anime
+        x_item = np.array([x_item[x_item["MAL_ID"] == id]
+                          for id in x_user[:, 1]])  # ItemId index is 1
+        return zip(x_user, x_item), y
