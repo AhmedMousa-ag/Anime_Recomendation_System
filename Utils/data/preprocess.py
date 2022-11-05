@@ -226,9 +226,12 @@ class preprocess_colabritive():
         If you would like to follow the paper please replace y line with the following
         y = np.array([ 0 if int(rating[-1]) < 5 else 1 for rating in data["rating"]]) # below 5 didn't like it
         """
+        
         y = np.array([int(rating[-1]) for rating in data_user["rating"]])
+        
         x_user = np.array([np.array(col) for row, col in
                            data_user["userId", "itemId", "watching_status", "watched_episodes"]]).squeeze()
+
         # We can take the following features from item feature MAL_ID , Genres , Type , Duration , Source
         x_item = data_item[["MAL_ID", "Type", "Duration", "Source"]]
         # must combine the anime_id with user rating for that anime
@@ -237,13 +240,11 @@ class preprocess_colabritive():
         Next lines will handle that."""
         n_x_item = []
         row_indx_del = 0 # Will handle index outstide of the loop because when we delete a row, the tensor gets shorter then out of index error.
-        for id in x_user[:, 1]:
+        for id in x_user[:, 1]: #Ironicly when we load more than 88 rows of user data, the data behave differently
             val = x_item[x_item["MAL_ID"] == id].to_numpy().squeeze()
-            print(f"id: {id}, val: {val}")
             if len(val)<1:
                 x_user = np.delete(x_user,row_indx_del,axis=0)
                 y = np.delete(y,row_indx_del,axis=0)
-                print("Delete row")
                 row_indx_del-=1
             else:
                 n_x_item.append(val)
