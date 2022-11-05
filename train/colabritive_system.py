@@ -16,42 +16,46 @@ class NNCollaborativeFiltering():
         self.n_items = n_items
         
 
-    def get_compiled_model(self,embedding_dims, d_layers):
-        user_input = Input(shape=(1,), dtype='int32', name='user_input')
-        item_input = Input(shape=(1,), dtype='int32', name='item_input')
+    def get_compiled_model(self,x_user_inp_shape,x_item_inp_shape,embedding_dims, d_layers):
+        user_input = Input(shape=x_user_inp_shape, dtype='int32', name='user_input')
+        item_input = Input(shape=x_item_inp_shape, dtype='int32', name='item_input')
 
         embedding_user_mf = Embedding(
             self.n_users, embedding_dims, name="Embed_user_mf")(user_input)
-        user_latent_mf = Flatten()(embedding_user_mf)
+        user_latent_mf = Flatten(name="Flatten_Embed_user_mf")(embedding_user_mf)
 
         embedding_user_mp = Embedding(
             self.n_users, embedding_dims, name="Embed_user_mp")(user_input)
-        embedding_user_mp = Flatten()(embedding_user_mp)
+        embedding_user_mp = Flatten(name="Flatten_Embed_user_mp")(embedding_user_mp)
 
         embedding_item_mf = Embedding(
             self.n_items, embedding_dims, name="Embed_item_mf")(item_input)
-        item_latent_mf = Flatten()(embedding_item_mf)
+        item_latent_mf = Flatten(name="Flatten_Embed_item_mf")(embedding_item_mf)
 
         embedding_item_mp = Embedding(
             self.n_items, embedding_dims, name="Embed_item_mp")(item_input)
-        embedding_item_mp = Flatten()(embedding_item_mp)
+        embedding_item_mp = Flatten(name="Flatten_Embed_item_mp")(embedding_item_mp)
 
-        mf_vector = Dot(axes=1)([user_latent_mf, item_latent_mf])
+        mf_vector = Dot(axes=1,name="Dot_layer")([user_latent_mf, item_latent_mf])
         mlp_vector = Concatenate(
-            axis=-1)([embedding_user_mp, embedding_item_mp])
+            axis=-1,name="mlp_concate_layer")([embedding_user_mp, embedding_item_mp])
+        
+        for i,layer in enumerate(d_layers):
+            mlp_vector = Dense(layer, activation='relu',name=f"Dense_layer_{i}")(mlp_vector)
 
-        for layer in d_layers:
-            mlp_vector = Dense(layer, activation='relu')(mlp_vector)
+        pred_vector = Concatenate(axis=-1,name="Pred_vec_conc_layer")([mf_vector, mlp_vector])
 
-        pred_vector = Concatenate(axis=-1)([mf_vector, mlp_vector])
-
-        output = Dense(1, activation="relu")(pred_vector)
+        output = Dense(1, activation="relu",name="Output_layer")(pred_vector)
 
         model = Model(inputs=[user_input, item_input], outputs=output)
         model.compile(optimizer='adam', loss='mse',metrics=['mae'])
         return model
 
     def train_model(self, x_user,x_item,y, epochs,embedding_dims=10, d_layers=[10]):
-        model = self.get_compiled_model(embedding_dims=embedding_dims, d_layers=d_layers)
+        x_user_inp_shape = x_user.shape[1:]
+        x_item_inp_shape = x_item.shape[1:]
+
+        model = self.get_compiled_model(x_user_inp_shape=x_user_inp_shape,x_item_inp_shape=x_item_inp_shape,
+                                     embedding_dims=embedding_dims, d_layers=d_layers)
         history = model.fit((x_user,x_item),y,epochs=epochs)
         return history,model
