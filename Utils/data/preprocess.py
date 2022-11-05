@@ -43,7 +43,6 @@ def onehot_encoder(data, name, first_preprocess=FIRST_PREPROCESS):
 
     else:
         encoder = pickle.load(open(f'{name}.pkl', 'rb'))
-        print(f"loaded: {name}")
     return encoder.transform(data)
 
 
@@ -169,6 +168,8 @@ class preprocess_colabritive():
         self.load_rows = load_rows
         self.write_path = write_path
         self.write_tf_file()
+        self.num_items = 0
+        self.num_users = 0
 
     def __create_mapping(self, values):
         value_to_id = {value: idx for idx, value in enumerate(values.unique())}
@@ -229,8 +230,29 @@ class preprocess_colabritive():
         x_user = np.array([np.array(col) for row, col in
                            data_user["userId", "itemId", "watching_status", "watched_episodes"]]).squeeze()
         # We can take the following features from item feature MAL_ID , Genres , Type , Duration , Source
-        x_item = data_item[["MAL_ID", "Genres", "Type", "Duration", "Source"]]
+        x_item = data_item[["MAL_ID", "Type", "Duration", "Source"]]
         # must combine the anime_id with user rating for that anime
-        x_item = np.array([x_item[x_item["MAL_ID"] == id]
-                          for id in x_user[:, 1]])  # ItemId index is 1
-        return zip(x_user, x_item), y
+
+        """Data is corrupted, there're rating for animes that doesn't exist in anime data,
+        Next lines will handle that."""
+        n_x_item = []
+        row_indx_del = 0 # Will handle index outstide of the loop because when we delete a row, the tensor gets shorter then out of index error.
+        for id in x_user[:, 1]:
+            val = x_item[x_item["MAL_ID"] == id].to_numpy().squeeze()
+            print(f"id: {id}, val: {val}")
+            if len(val)<1:
+                x_user = np.delete(x_user,row_indx_del,axis=0)
+                y = np.delete(y,row_indx_del,axis=0)
+                print("Delete row")
+                row_indx_del-=1
+            else:
+                n_x_item.append(val)
+            row_indx_del+=1
+            
+        x_item = np.array(n_x_item)
+        self.num_items = len(np.unique(x_user[:,1])) #Required for building the NN network
+        self.num_users = len(np.unique(x_user[:,0])) #Required for building the NN network
+        return x_user, x_item, y
+
+    def get_num_user_items(self):
+        return int(self.num_users), int(self.num_items)
