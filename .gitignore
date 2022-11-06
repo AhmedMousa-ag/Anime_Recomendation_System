@@ -1,6 +1,5 @@
 Data/
 .pytest_cache/
 .vscode/
-testing_code.py
 *.pkl
 __pycache__
