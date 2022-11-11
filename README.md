@@ -1,5 +1,5 @@
 # Anime_Recommendation_System_GCP
-Implementing NNFC recomendation system on GCP with periodic training.
+Implementing Neural Network Recomendation System on GCP with periodic training.
 I did slight change with Neural Network to predict rating istead of predicting if the user will like it or not. "You can change it back to match the paper by uncomment suggested lines in Utils/data/preprocess.py and train/colabritive_system.py".
 
 This project is due to participating in DataTalks.club project of the week. 
